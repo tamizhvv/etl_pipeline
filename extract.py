@@ -2,8 +2,9 @@ import requests
 import time
 import logging
 logger = logging.getLogger('etl_pipeline')
-
 import config
+
+
 def extract_data():
     logger.info('Extraction Started')
     retries=config.retry
