@@ -1,7 +1,8 @@
 import requests
 import time
-from logger import logs
-logger,run_id=logs('etl_pipeline')
+import logging
+logger = logging.getLogger('etl_pipeline')
+
 import config
 def extract_data():
     logger.info('Extraction Started')

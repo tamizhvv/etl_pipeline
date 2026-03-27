@@ -1,6 +1,6 @@
 from datetime import datetime,timezone
-from logger import logs
-logger,run_id=logs('etl_pipeline')
+import logging
+logger = logging.getLogger('etl_pipeline')
 
 def transform_data(data):
     logger.info('Transformation Started')
