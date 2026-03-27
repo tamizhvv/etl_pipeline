@@ -12,8 +12,12 @@ def extract_data():
         try:
             response=requests.get(config.api)
             data=response.json()
-            logger.info(f"Extracted {len(data)} records successfully")
-            return data
+            if len(data)==0:
+                logger.error('No data found')
+                return None
+            else:
+                return data
+            
         except Exception as e:
             if retry==retries:
                 logger.error('retry limit reached')
