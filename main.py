@@ -3,9 +3,11 @@ import config
 from datetime import datetime
 from extract import extract_data
 from transform import transform_data
-from load import load_data
+# from load import load_data
 from logger import logs
 logger,run_id=logs('etl_pipeline')
+from upload_to_s3 import upload_to_s3
+from load_postgresql import load_postgres
 
 def run_pipeline():
     connection=None
@@ -29,8 +31,10 @@ def run_pipeline():
             cursor.execute('insert into pipeline_runs (run_id,start_time,end_time,status,stage,error_message,records_extracted, records_transformed, records_loaded)values(?,?,?,?,?,?,?,?,?)',(run_id,start_time,datetime.now().isoformat(),'failed','transform','no values cleaned',rows_extracted,0,None))
             return
         rows_cleaned=len(cleaned)
+        upload_to_s3(cleaned)
 
-        rows_loaded = load_data(cleaned)
+
+        rows_loaded = load_postgres(cleaned)
         logger.info('Pipeline Completed')
         cursor.execute('insert into pipeline_runs (run_id,start_time,end_time,status,stage,error_message,records_extracted, records_transformed, records_loaded)values(?,?,?,?,?,?,?,?,?)',(run_id,start_time,datetime.now().isoformat(),'success',None,None,rows_extracted,rows_cleaned,rows_loaded))
     finally:
