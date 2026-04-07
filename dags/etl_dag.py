@@ -6,6 +6,8 @@ from airflow.operators.python import PythonOperator
 from extract import extract_data
 from transform import transform_data
 from load import load_data
+from upload_to_s3 import upload_to_s3,download_from_s3
+from load_postgresql import load_postgres
 default_args = {
     'retries': 2,
     'retry_delay': datetime.timedelta(minutes=1)
@@ -20,20 +22,31 @@ with DAG(
     
 ) as dag:
    
-    def extract_wrapper():
-        raw=extract_data()
-        return raw
+   def extract_wrapper(**kwargs):
+    ti = kwargs['ti']
+    raw = extract_data()
+    s3_key = upload_to_s3(raw)
+    row_count = len(raw)
+    ti.xcom_push(key='extract_meta', value={'s3_key': s3_key, 'row_count': row_count})
     
     def transform_wrapper(**kwargs):
             ti = kwargs['ti']
-            raw = ti.xcom_pull(task_ids='extract')
+            meta = ti.xcom_pull(task_ids='extract', key='extract_meta')
+            s3_key=meta['s3_key']
+            raw=download_from_s3(s3_key)
             cleaned = transform_data(raw)
-            return cleaned
+            s3_key_tr=upload_to_s3(cleaned)
+            row_count=len(cleaned)
+            ti.xcom_push(key='transform_meta', value={'s3_key': s3_key_tr, 'row_count': row_count})
+
     
     def load_wrapper(**kwargs):
-         ti=kwargs['ti']
-         cleaned=ti.xcom_pull(task_ids='transform')
-         load_data(cleaned)
+        ti=kwargs['ti']
+        meta=ti.xcom_pull(task_ids='transform',key='transform_mets')
+        data=meta['s3_key']
+        s3_key=download_from_s3(data)
+        load_postgres
+        load_data(cleaned)
 
     task_extract = PythonOperator(
     task_id='extract',
